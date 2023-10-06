@@ -23,5 +23,6 @@
     "types": ["node"]
   },
   "include": ["src"],
+  "exclude": ["apiGenerator.cjs"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
