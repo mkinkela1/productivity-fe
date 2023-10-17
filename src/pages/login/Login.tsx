@@ -1,9 +1,8 @@
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useForm } from "react-hook-form";
-import { redirect } from "react-router-dom";
-import ApiCall from "src/api/ApiCall";
 import Button from "src/components/button/Button";
 import TextInput from "src/components/input/TextInput";
+import { useAuth } from "src/contexts/AuthContext";
 import { object, string } from "yup";
 
 const loginSchema = object({
@@ -11,7 +10,6 @@ const loginSchema = object({
   password: string()
     .test({
       test: function (val: string = "") {
-        // Password needs to contain at least 8 characters, 1 capital letter, 1 small letter and 1 number. it can also contain special chars
         const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d\S]{8,}$/;
 
         if (!regex.test(val)) {
@@ -27,6 +25,7 @@ const loginSchema = object({
 });
 
 const Login: React.FC = () => {
+  const { login } = useAuth();
   const { control, handleSubmit } = useForm({
     resolver: yupResolver(loginSchema),
     defaultValues: {
@@ -35,15 +34,7 @@ const Login: React.FC = () => {
     },
   });
 
-  const handleSave = () =>
-    handleSubmit(async (data) => {
-      try {
-        await ApiCall.login(data);
-        redirect("/dashboard");
-      } catch (error) {
-        console.log(error);
-      }
-    })();
+  const handleSave = () => handleSubmit(login)();
 
   return (
     <>

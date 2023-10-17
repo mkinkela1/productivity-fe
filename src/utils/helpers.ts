@@ -18,8 +18,8 @@ export function isEmpty<T extends string | unknown[]>(
   return isNullOrUndefined(value) || value.length === 0;
 }
 
-export function isNotEmpty<T extends string>(
+export function isNotEmpty<T extends string | unknown[]>(
   value: T | null | undefined,
-): boolean {
+): value is T {
   return !isEmpty(value);
 }

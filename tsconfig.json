@@ -22,7 +22,7 @@
     "noFallthroughCasesInSwitch": true,
     "types": ["node"]
   },
-  "include": ["src"],
+  "include": ["src", "tokens.js"],
   "exclude": ["apiGenerator.cjs"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

@@ -17,7 +17,9 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.47.0",
+    "react-query": "^3.39.3",
     "react-router-dom": "^6.16.0",
+    "vite-plugin-sw": "^1.0.2",
     "yup": "^1.3.2"
   },
   "devDependencies": {
@@ -34,7 +36,6 @@
     "eslint": "^8.45.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.3",
     "postcss": "^8.4.31",
     "prettier": "3.0.3",
     "swagger-typescript-api": "^13.0.3",
