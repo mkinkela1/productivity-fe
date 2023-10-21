@@ -6,11 +6,11 @@ export default {
   theme: {
     extend: {
       colors: {
-        dark: "#202225",
-        "input-dark": "#111314",
-        "input-label": "#808489",
-        "input-value": "#d1d4d9",
-        blue: "#4091eb",
+        // dark: "#202225",
+        // "input-dark": "#111314",
+        // "input-label": "#808489",
+        // "input-value": "#d1d4d9",
+        // blue: "#4091eb",
       },
     },
   },
