@@ -1,13 +1,11 @@
-const endpointsWithTokens = ["/api/auth/login", "/api/auth/refresh-token"];
-const TOKEN_NAME = "accessToken";
-const REFRESH_TOKEN_NAME = "refreshToken";
+const authUrl = "/api/auth/login";
+const refreshTokenUrl = "/api/auth/refresh-token";
 
-let accessToken = "";
-let refreshToken = "";
+const ACCESS_TOKEN = "accessToken";
+const REFRESH_TOKEN = "refreshToken";
 
 const dbName = "tokenDB";
 const dbVersion = 1;
-let db;
 
 const indexedDB =
   self.indexedDB ||
@@ -15,7 +13,25 @@ const indexedDB =
   self.webkitIndexedDB ||
   self.msIndexedDB;
 
-function openDatabase() {
+const GlobalState = (() => {
+  let db = null,
+    secretKey = null,
+    accessToken = "",
+    refreshToken = "";
+
+  return {
+    getDb: () => db,
+    setDb: (newDb) => (db = newDb),
+    getSecretKey: () => secretKey,
+    setSecretKey: (newSecretKey) => (secretKey = newSecretKey),
+    getAccessToken: () => accessToken,
+    setAccessToken: (newAccessToken) => (accessToken = newAccessToken),
+    getRefreshToken: () => refreshToken,
+    setRefreshToken: (newRefreshToken) => (refreshToken = newRefreshToken),
+  };
+})();
+
+const openDatabase = () => {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(dbName, dbVersion);
 
@@ -24,63 +40,91 @@ function openDatabase() {
     };
 
     request.onsuccess = () => {
-      db = request.result;
+      GlobalState.setDb(request.result);
       resolve();
     };
 
     request.onupgradeneeded = (event) => {
-      db = event.target.result;
-      db.createObjectStore("tokens", { keyPath: "name" });
+      GlobalState.setDb(event.target.result);
+      GlobalState.getDb().createObjectStore("tokens", { keyPath: "name" });
     };
   });
-}
+};
 
-// const iv = crypto.randomBytes(16).toString("hex").slice(0, 16);
-// TODO: get key from env
-// const key = "text";
+const encryptData = async (data) => {
+  const encoder = new TextEncoder();
+  const dataBuffer = encoder.encode(data);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
 
-function encrypt(text) {
-  // const encrypter = crypto.createCipheriv("aes-256-cbc", key, iv);
-  // let encryptedMsg = encrypter.update(text, "utf8", "hex");
-  // encryptedMsg += encrypter.final("hex");
-  // return encryptedMsg;
+  const encryptedData = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    GlobalState.getSecretKey(),
+    dataBuffer,
+  );
 
-  return text;
-}
+  return {
+    iv,
+    token: encryptedData,
+  };
+};
 
-function decrypt(text) {
-  // const decrypter = crypto.createDecipheriv("aes-256-cbc", key, iv);
-  // let decryptedMsg = decrypter.update(text, "hex", "utf8");
-  // decryptedMsg += decrypter.final("utf8");
-  // return decryptedMsg;
+const decryptData = async (encryptedData) => {
+  try {
+    const { iv, token } = encryptedData;
 
-  return text;
-}
+    const ivBuffer = new Uint8Array(iv);
+    const tokenBuffer = new Uint8Array(token);
 
-function saveTokensToIndexedDB() {
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(["tokens"], "readwrite");
+    const decryptedBuffer = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: ivBuffer },
+      GlobalState.getSecretKey(),
+      tokenBuffer,
+    );
+
+    const textDecoder = new TextDecoder();
+    const decryptedString = textDecoder.decode(decryptedBuffer);
+
+    return decryptedString;
+  } catch (e) {
+    console.error(e);
+  }
+};
+
+const saveTokensToIndexedDB = (_accessToken, _refreshToken) => {
+  return new Promise(async (resolve, reject) => {
+    const { token: accessToken, iv: accessTokenIv } =
+      await encryptData(_accessToken);
+    const { token: refreshToken, iv: refreshTokenIv } =
+      await encryptData(_refreshToken);
+    const transaction = GlobalState.getDb().transaction(
+      ["tokens"],
+      "readwrite",
+    );
     const objectStore = transaction.objectStore("tokens");
 
-    const encryptedAccessToken = encrypt(accessToken);
-    const encryptedRefreshToken = encrypt(refreshToken);
+    objectStore.put({
+      name: ACCESS_TOKEN,
+      value: { token: accessToken, iv: accessTokenIv },
+    });
+    objectStore.put({
+      name: REFRESH_TOKEN,
+      value: { token: refreshToken, iv: refreshTokenIv },
+    });
 
     transaction.oncomplete = () => {
       resolve();
     };
 
-    transaction.onerror = () => {
+    transaction.onerror = (e) => {
+      console.log(e);
       reject("Error saving tokens to IndexedDB");
     };
-
-    objectStore.put({ name: TOKEN_NAME, value: encryptedAccessToken });
-    objectStore.put({ name: REFRESH_TOKEN_NAME, value: encryptedRefreshToken });
   });
-}
+};
 
-function restoreTokensFromIndexedDB() {
+const restoreTokensFromIndexedDB = () => {
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(["tokens"]);
+    const transaction = GlobalState.getDb().transaction(["tokens"]);
     const objectStore = transaction.objectStore("tokens");
 
     transaction.oncomplete = () => {
@@ -91,74 +135,124 @@ function restoreTokensFromIndexedDB() {
       reject("Error restoring tokens from IndexedDB");
     };
 
-    const accessTokenRequest = objectStore.get(TOKEN_NAME);
-    const refreshTokenRequest = objectStore.get(REFRESH_TOKEN_NAME);
+    const accessTokenRequest = objectStore.get(ACCESS_TOKEN);
+    const refreshTokenRequest = objectStore.get(REFRESH_TOKEN);
 
-    accessTokenRequest.onsuccess = (event) => {
-      const encryptedAccessToken = event.target.result?.value;
-      if (encryptedAccessToken) {
-        accessToken = decrypt(encryptedAccessToken);
+    accessTokenRequest.onsuccess = async (event) => {
+      try {
+        const encryptedAccessToken = event.target.result?.value;
+        if (encryptedAccessToken) {
+          const accessToken = await decryptData(encryptedAccessToken);
+          GlobalState.setAccessToken(accessToken);
+        }
+      } catch (e) {
+        console.error(e);
       }
     };
 
-    refreshTokenRequest.onsuccess = (event) => {
-      const encryptedRefreshToken = event.target.result?.value;
-      if (encryptedRefreshToken) {
-        refreshToken = decrypt(encryptedRefreshToken);
+    refreshTokenRequest.onsuccess = async (event) => {
+      try {
+        const encryptedRefreshToken = event.target.result?.value;
+        if (encryptedRefreshToken) {
+          const refreshToken = await decryptData(encryptedRefreshToken);
+          GlobalState.setRefreshToken(refreshToken);
+        }
+      } catch (e) {
+        console.error(e);
       }
     };
   });
-}
+};
+
+const computeSecretKey = async ({ key }) => {
+  console.log(key);
+  const keyBuffer = Uint8Array.from(
+    key
+      .slice(0, 16)
+      .split("")
+      .map((x) => x.charCodeAt()),
+  );
+
+  return await crypto.subtle.importKey("raw", keyBuffer, "AES-GCM", false, [
+    "decrypt",
+    "encrypt",
+  ]);
+};
+
+const setupSecrets = async (key) => {
+  console.log(key);
+  try {
+    const secretKey = await computeSecretKey(key);
+
+    GlobalState.setSecretKey(secretKey);
+
+    await openDatabase();
+    await restoreTokensFromIndexedDB();
+
+    console.log("Secrets setup complete");
+  } catch (error) {
+    console.error("Error during setting up secrets:", error);
+  }
+};
+
+const configChannel = new BroadcastChannel("configChannel");
+configChannel.addEventListener("message", (event) => {
+  setupSecrets(event.data.configData);
+});
 
 self.addEventListener("install", () => {
   console.log("Service worker is installing...");
 });
 
-self.addEventListener("activate", function (event) {
+self.addEventListener("activate", (event) => {
+  console.log("Activating service worker...");
   event.waitUntil(self.clients.claim());
-  openDatabase()
-    .then(restoreTokensFromIndexedDB)
-    .catch((error) => console.error(error));
 });
 
 self.addEventListener("fetch", (event) => {
-  event.respondWith(
-    (async function () {
-      let response = await fetch(event.request);
-      const url = new URL(event.request.url);
-      const endpoint = url.pathname;
-
-      if (!endpoint.includes("/api/")) return response;
-
-      response = await response.json();
-
-      if (endpointsWithTokens.includes(endpoint)) {
-        accessToken = response[TOKEN_NAME];
-        refreshToken = response[REFRESH_TOKEN_NAME];
-
-        delete response[TOKEN_NAME];
-        delete response[REFRESH_TOKEN_NAME];
-
-        saveTokensToIndexedDB().catch((error) => console.error(error));
-
-        return new Response(JSON.stringify(response));
-      } else {
-        const headers = new Headers(event.request.headers);
-        headers.append("Authorization", `Bearer ${accessToken}`);
-
-        const newRequest = new Request(event.request.url, {
-          ...event.request,
-          method: event.request.method,
-          headers,
-        });
-
-        const response = await fetch(newRequest);
-
-        return response;
-      }
-    })(),
-  );
+  event.respondWith(useTokens(event));
 });
+
+const useTokens = async (event) => {
+  const url = new URL(event.request.url);
+  const endpoint = url.pathname;
+
+  if (!endpoint.includes("/api/")) return await fetch(event.request);
+
+  if (endpoint.includes(authUrl)) {
+    let response = await fetch(event.request);
+    response = await response.json();
+
+    const accessToken = response[ACCESS_TOKEN];
+    const refreshToken = response[REFRESH_TOKEN];
+    GlobalState.setAccessToken(accessToken);
+    GlobalState.setRefreshToken(refreshToken);
+
+    delete response[ACCESS_TOKEN];
+    delete response[REFRESH_TOKEN];
+
+    saveTokensToIndexedDB(accessToken, refreshToken).catch((error) =>
+      console.error(error),
+    );
+
+    return new Response(JSON.stringify(response));
+  } else {
+    const headers = new Headers(event.request.headers);
+    const accessToken = GlobalState.getAccessToken();
+
+    headers.set("Authorization", `Bearer ${accessToken}`);
+
+    const modifiedRequest = new Request(event.request.url, {
+      ...event.request,
+      headers,
+    });
+
+    const response = await fetch(modifiedRequest);
+    const responseJson = await response.json();
+
+    return new Response(JSON.stringify(responseJson));
+  }
+};
 
 /*if (response.status === 401) {
             const refreshResponse = await fetch(

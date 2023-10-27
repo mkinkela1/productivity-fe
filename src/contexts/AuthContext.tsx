@@ -29,8 +29,6 @@ const AuthContextProvider: React.FC<PropsWithChildren> = ({ children }) => {
     isLoading: isLoadingCurrentUser,
     refetch: reloadCurrentUser,
   } = useQuery([CURRENT_USER], ApiCall.getLoggedInUser, {
-    retry: 1,
-    retryDelay: 0,
     enabled: isSwRegistered,
   });
 
@@ -47,6 +45,8 @@ const AuthContextProvider: React.FC<PropsWithChildren> = ({ children }) => {
   };
 
   const fullName = `${currentUser?.firstName} ${currentUser?.lastName}`;
+
+  console.log(currentUser);
 
   const logout = () => {
     reloadCurrentUser();

@@ -21,8 +21,24 @@ const ServiceWorkerContextProvider: React.FC<PropsWithChildren> = ({
 }) => {
   const [isSwRegistered, setIsSwRegistered] = useState(false);
 
+  const broadcastConfig = () => {
+    const configChannel = new BroadcastChannel("configChannel");
+
+    const configData = {
+      key: import.meta.env.VITE_TOKEN_SW_KEY,
+    };
+
+    configChannel.postMessage({ configData });
+  };
+
   useEffect(() => {
-    register({ swUrl: "/tokens.js", onSuccess: () => setIsSwRegistered(true) });
+    register({
+      swUrl: "/tokens.js",
+      onSuccess: () => {
+        setIsSwRegistered(true);
+        broadcastConfig();
+      },
+    });
 
     return () => unregister();
   }, []);
