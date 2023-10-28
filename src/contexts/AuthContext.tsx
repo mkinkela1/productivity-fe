@@ -1,6 +1,5 @@
 import React, { PropsWithChildren, createContext, useContext } from "react";
 import { useQuery } from "react-query";
-import { useNavigate } from "react-router-dom";
 import { useServiceWorker } from "src/contexts/ServiceWorkerContext";
 import ApiCall from "src/endpoints/ApiCall";
 import {
@@ -21,7 +20,6 @@ type TAuthContext = {
 export const AuthContext = createContext<TAuthContext | null>(null);
 
 const AuthContextProvider: React.FC<PropsWithChildren> = ({ children }) => {
-  const navigate = useNavigate();
   const { isSwRegistered } = useServiceWorker();
 
   const {
@@ -30,6 +28,7 @@ const AuthContextProvider: React.FC<PropsWithChildren> = ({ children }) => {
     refetch: reloadCurrentUser,
   } = useQuery([CURRENT_USER], ApiCall.getLoggedInUser, {
     enabled: isSwRegistered,
+    retry: 1,
   });
 
   const currentUser = data?.data;
@@ -38,18 +37,23 @@ const AuthContextProvider: React.FC<PropsWithChildren> = ({ children }) => {
     try {
       await ApiCall.login(data);
       await reloadCurrentUser();
-      navigate("/app/home");
+      window.open("/app/home", "_self");
     } catch (error) {
       // TODO: add toastr to handle error
+      console.log(error);
     }
   };
 
   const fullName = `${currentUser?.firstName} ${currentUser?.lastName}`;
 
-  console.log(currentUser);
-
-  const logout = () => {
-    reloadCurrentUser();
+  const logout = async () => {
+    try {
+      // this will be populated in service worker
+      await ApiCall.logout({ accessToken: "", refreshToken: "" });
+      await reloadCurrentUser();
+    } catch (error) {
+      // TODO: add toastr to handle error
+    }
   };
 
   return (

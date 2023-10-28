@@ -1,4 +1,5 @@
-const authUrl = "/api/auth/login";
+const loginUrl = "/api/auth/login";
+const logoutUrl = "/api/auth/logout";
 const refreshTokenUrl = "/api/auth/refresh-token";
 
 const ACCESS_TOKEN = "accessToken";
@@ -116,8 +117,7 @@ const saveTokensToIndexedDB = (_accessToken, _refreshToken) => {
     };
 
     transaction.onerror = (e) => {
-      console.log(e);
-      reject("Error saving tokens to IndexedDB");
+      reject(`Error saving tokens to IndexedDB: ${e}`);
     };
   });
 };
@@ -165,7 +165,6 @@ const restoreTokensFromIndexedDB = () => {
 };
 
 const computeSecretKey = async ({ key }) => {
-  console.log(key);
   const keyBuffer = Uint8Array.from(
     key
       .slice(0, 16)
@@ -180,7 +179,6 @@ const computeSecretKey = async ({ key }) => {
 };
 
 const setupSecrets = async (key) => {
-  console.log(key);
   try {
     const secretKey = await computeSecretKey(key);
 
@@ -213,33 +211,76 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(useTokens(event));
 });
 
-const useTokens = async (event) => {
-  const url = new URL(event.request.url);
-  const endpoint = url.pathname;
+const login = async (event) => {
+  console.log(event);
+  let response = await fetch(event.request);
+  response = await response.json();
 
-  if (!endpoint.includes("/api/")) return await fetch(event.request);
+  const accessToken = response[ACCESS_TOKEN];
+  const refreshToken = response[REFRESH_TOKEN];
+  GlobalState.setAccessToken(accessToken);
+  GlobalState.setRefreshToken(refreshToken);
 
-  if (endpoint.includes(authUrl)) {
-    let response = await fetch(event.request);
-    response = await response.json();
+  delete response[ACCESS_TOKEN];
+  delete response[REFRESH_TOKEN];
 
-    const accessToken = response[ACCESS_TOKEN];
-    const refreshToken = response[REFRESH_TOKEN];
+  saveTokensToIndexedDB(accessToken, refreshToken).catch((error) =>
+    console.error(error),
+  );
+
+  return new Response(JSON.stringify(response));
+};
+
+const logout = async (event) => {};
+
+const authenticateRequest = async (event) => {
+  const headers = new Headers(event.request.headers);
+  const accessToken = GlobalState.getAccessToken();
+
+  headers.set("Authorization", `Bearer ${accessToken}`);
+
+  const modifiedRequest = new Request(event.request.url, {
+    ...event.request,
+    headers,
+  });
+
+  const response = await fetch(modifiedRequest);
+  const responseJson = await response.json();
+
+  if (response.status === 401) {
+    return await refreshToken(event);
+  } else return new Response(JSON.stringify(responseJson));
+};
+
+const refreshToken = async (event) => {
+  console.log(event);
+  const refreshResponse = await fetch(
+    "http://localhost:3000/api/auth/refresh-token",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        refreshToken: GlobalState.getRefreshToken(),
+      }),
+    },
+  );
+
+  if (refreshResponse.ok) {
+    const data = await refreshResponse.json();
+
+    const accessToken = data[ACCESS_TOKEN];
+    const refreshToken = data[REFRESH_TOKEN];
+
     GlobalState.setAccessToken(accessToken);
     GlobalState.setRefreshToken(refreshToken);
-
-    delete response[ACCESS_TOKEN];
-    delete response[REFRESH_TOKEN];
 
     saveTokensToIndexedDB(accessToken, refreshToken).catch((error) =>
       console.error(error),
     );
 
-    return new Response(JSON.stringify(response));
-  } else {
     const headers = new Headers(event.request.headers);
-    const accessToken = GlobalState.getAccessToken();
-
     headers.set("Authorization", `Bearer ${accessToken}`);
 
     const modifiedRequest = new Request(event.request.url, {
@@ -247,38 +288,21 @@ const useTokens = async (event) => {
       headers,
     });
 
-    const response = await fetch(modifiedRequest);
-    const responseJson = await response.json();
-
-    return new Response(JSON.stringify(responseJson));
+    return await fetch(modifiedRequest);
   }
 };
 
-/*if (response.status === 401) {
-            const refreshResponse = await fetch(
-              "http://localhost:3000/api/auth/refresh-token",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  refreshToken,
-                }),
-              },
-            );
-  
-            if (refreshResponse.ok) {
-              const data = await refreshResponse.json();
-              accessToken = data[TOKEN_NAME];
-              refreshToken = data[REFRESH_TOKEN_NAME];
-  
-              const headers = new Headers(event.request.headers);
-              headers.append("Authorization", `Bearer ${accessToken}`);
-              event.request = new Request(event.request, {
-                headers: headers,
-              });
-  
-              return fetch(event.request);
-            }
-          }*/
+const useTokens = async (event) => {
+  const url = new URL(event.request.url);
+  const endpoint = url.pathname;
+
+  if (!endpoint.includes("/api/")) return await fetch(event.request);
+
+  if (endpoint.includes(loginUrl)) {
+    return await login(event);
+  } else if (endpoint.includes(logoutUrl)) {
+    return await logout(event);
+  } else {
+    return await authenticateRequest(event);
+  }
+};

@@ -11,7 +11,7 @@ const DashboardLayout: React.FC<PropsWithChildren> = () => {
         <TopMenu />
         <div className="flex-grow flex overflow-x-hidden">
           <div className="flex-grow bg-white dark:bg-gray-900 overflow-y-auto">
-            <div className="sm:px-7 sm:pt-7 px-4 pt-4 flex flex-col w-full bg-white dark:bg-gray-900 dark:text-white  sticky top-0">
+            <div className="sm:px-7 sm:pt-7 px-4 pt-4 flex flex-col w-full bg-white dark:bg-gray-900 dark:text-white sticky top-0">
               <Outlet />
             </div>
           </div>

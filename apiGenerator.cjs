@@ -5,7 +5,7 @@ const fs = require("fs");
 generateApi({
   name: "Api.ts",
   url: "http://localhost:3000/api-json",
-  output: path.resolve(__dirname, "src/api/__generated__/"),
+  output: path.resolve(__dirname, "src/endpoints/__generated__/"),
   httpClientType: "axios",
   cleanOutput: true,
   singleHttpClient: true,
@@ -32,9 +32,9 @@ generateApi({
     },
   }
 })
-  .then(({ files, configuration }) => {
-    files.forEach(({ content, name }) => {
-      fs.writeFile(path, content);
+  .then(({ files }) => {
+    files.forEach(({ content }) => {
+      fs.writeFileSync(path, JSON.stringify(content));
     });
   })
   .catch(e => console.error(e))

@@ -69,6 +69,13 @@ export interface LoginResponseDto {
   refreshToken: string;
 }
 
+export type LogoutData = any;
+
+export interface LogoutDtoRequest {
+  accessToken: string;
+  refreshToken: string;
+}
+
 export interface NoteResponseDto {
   content: string;
   id: string;
@@ -367,6 +374,24 @@ export class Api<SecurityDataType extends unknown> {
     refreshToken: (data: RefreshTokenDtoRequest, params: RequestParams = {}) =>
       this.http.request<RefreshTokenData, void>({
         path: `/api/auth/refresh-token`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags auth
+     * @name Logout
+     * @request POST:/api/auth/logout
+     * @response `201` `LogoutData`
+     * @response `401` `void`
+     */
+    logout: (data: LogoutDtoRequest, params: RequestParams = {}) =>
+      this.http.request<LogoutData, void>({
+        path: `/api/auth/logout`,
         method: "POST",
         body: data,
         type: ContentType.Json,

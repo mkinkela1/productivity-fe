@@ -11,20 +11,21 @@ import AuthContextProvider from "src/contexts/AuthContext";
 import ServiceWorkerContextProvider from "src/contexts/ServiceWorkerContext";
 import DashboardLayout from "src/layouts/Dashboard/DashboardLayout";
 import UnauthLayout from "src/layouts/Unauth/UnauthLayout";
+import Calendar from "src/pages/calendar/Calendar";
 import Home from "src/pages/home/Home";
 import Login from "src/pages/login/Login";
-import Users from "src/pages/users/Users";
+import SignOut from "src/pages/sign-out/SignOut";
 
-const queryClient = new QueryClient({
+export const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false } },
 });
 
 function App() {
   return (
-    <ServiceWorkerContextProvider>
-      <QueryClientProvider client={queryClient}>
-        <Router>
-          <AuthContextProvider>
+    <QueryClientProvider client={queryClient}>
+      <ServiceWorkerContextProvider>
+        <AuthContextProvider>
+          <Router>
             <Routes>
               <Route element={<UnauthLayout />}>
                 <Route path="/" element={<Login />} />
@@ -38,15 +39,16 @@ function App() {
                 }
               >
                 <Route path="home" element={<Home />} />
-                <Route path="users" element={<Users />} />
+                <Route path="calendar" element={<Calendar />} />
+                <Route path="sign-out" element={<SignOut />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-          </AuthContextProvider>
-        </Router>
+          </Router>
+        </AuthContextProvider>
         <ReactQueryDevtools initialIsOpen={false} position="bottom-right" />
-      </QueryClientProvider>
-    </ServiceWorkerContextProvider>
+      </ServiceWorkerContextProvider>
+    </QueryClientProvider>
   );
 }
 
