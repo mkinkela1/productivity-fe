@@ -37,7 +37,7 @@ const ControlledInput = <Interface extends FieldValues>({
         <div className="flex flex-col gap-2">
           <label
             htmlFor={inputId}
-            className="block text-sm font-medium leading-6 text-input-label"
+            className="block text-sm font-medium leading-6 text-input-label text-white"
           >
             {label}
           </label>
@@ -46,7 +46,7 @@ const ControlledInput = <Interface extends FieldValues>({
             id={inputId}
             type={type}
             autoComplete={getAutocomplete()}
-            className="block bg-input-dark px-4 w-full rounded-md border-0 py-2 text-input-value"
+            className="bg-transparent border border-gray-700 text-white w-full rounded-md text-sm focus:outline-none focus:border-gray-700 focus:ring-0"
           />
           <div className="text-red-500 text-xs">{error?.message}</div>
         </div>

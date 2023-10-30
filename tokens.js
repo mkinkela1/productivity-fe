@@ -1,6 +1,5 @@
 const loginUrl = "/api/auth/login";
 const logoutUrl = "/api/auth/logout";
-const refreshTokenUrl = "/api/auth/refresh-token";
 
 const ACCESS_TOKEN = "accessToken";
 const REFRESH_TOKEN = "refreshToken";
@@ -212,7 +211,6 @@ self.addEventListener("fetch", (event) => {
 });
 
 const login = async (event) => {
-  console.log(event);
   let response = await fetch(event.request);
   response = await response.json();
 
@@ -239,12 +237,14 @@ const authenticateRequest = async (event) => {
 
   headers.set("Authorization", `Bearer ${accessToken}`);
 
-  const modifiedRequest = new Request(event.request.url, {
+  const modifiedRequest = new Request(event.request, {
     ...event.request,
     headers,
   });
 
   const response = await fetch(modifiedRequest);
+
+  if (response.ok) return response;
   const responseJson = await response.json();
 
   if (response.status === 401) {
@@ -253,7 +253,6 @@ const authenticateRequest = async (event) => {
 };
 
 const refreshToken = async (event) => {
-  console.log(event);
   const refreshResponse = await fetch(
     "http://localhost:3000/api/auth/refresh-token",
     {

@@ -30,15 +30,15 @@ const TopMenu = () => {
   const { currentUser } = useAuth();
   const { pathname } = useLocation();
   return (
-    <div className="h-16 lg:flex w-full border-b border-gray-200 dark:border-gray-800 hidden px-10">
-      <div className="flex h-full text-gray-600 dark:text-gray-400">
+    <div className="lg:flex w-full border-b border-gray-800 hidden px-10">
+      <div className="flex h-full text-gray-400">
         {menu.map(({ title, link }) => (
           <Link
             key={title}
             to={link}
             className={`cursor-pointer h-full border-b-2 ${
               pathname.includes(link)
-                ? "border-blue-500 text-blue-500  dark:text-white dark:border-white"
+                ? " text-white border-white"
                 : "border-transparent"
             } inline-flex items-center mr-8`}
           >
@@ -46,7 +46,7 @@ const TopMenu = () => {
           </Link>
         ))}
       </div>
-      <div className="ml-auto flex items-center space-x-7">
+      <div className="py-4 ml-auto flex items-center space-x-7">
         <BellIcon className="w-6" />
         <Menu as="div" className="relative inline-block text-left">
           <div>
@@ -65,7 +65,7 @@ const TopMenu = () => {
             leaveFrom="transform opacity-100 scale-100"
             leaveTo="transform opacity-0 scale-95"
           >
-            <Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-gray-100 dark:bg-gray-900  shadow-lg border border-gray-200 dark:border-gray-800 focus:outline-none">
+            <Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-gray-900  shadow-lg border border-gray-800 focus:outline-none">
               <div className="py-1">
                 {userDropdownMenu.map(({ title, link }) => (
                   <Menu.Item key={title}>
@@ -73,10 +73,8 @@ const TopMenu = () => {
                       <Link
                         to={link}
                         className={classNames(
-                          active
-                            ? "dark:bg-gray-700 dark:text-white bg-blue-100 text-blue-500"
-                            : " dark:text-gray-500",
-                          "dark:text-white text-gray-600",
+                          active ? "bg-gray-700 text-white" : " text-gray-500",
+                          "text-white",
                           "block px-4 py-2 text-sm",
                         )}
                       >
