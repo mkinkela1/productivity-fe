@@ -1,5 +1,7 @@
 import { useId } from "react";
 import { Control, Controller, FieldPath, FieldValues } from "react-hook-form";
+import { Input } from "src/components/ui/input";
+import { Label } from "src/components/ui/label";
 
 type InputType = "email" | "text" | "password";
 
@@ -34,19 +36,14 @@ const ControlledInput = <Interface extends FieldValues>({
       control={control}
       name={fieldName}
       render={({ field, fieldState: { error } }) => (
-        <div className="flex flex-col gap-2">
-          <label
-            htmlFor={inputId}
-            className="block text-sm font-medium leading-6 text-input-label text-white"
-          >
-            {label}
-          </label>
-          <input
+        <div className="grid w-full max-w-sm items-center gap-1.5">
+          <Label htmlFor="email">{label}</Label>
+          <Input
             {...field}
-            id={inputId}
             type={type}
+            id={inputId}
             autoComplete={getAutocomplete()}
-            className="bg-transparent border border-gray-700 text-white w-full rounded-md text-sm focus:outline-none focus:border-gray-700 focus:ring-0"
+            placeholder="Email"
           />
           <div className="text-red-500 text-xs">{error?.message}</div>
         </div>

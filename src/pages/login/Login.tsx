@@ -1,7 +1,7 @@
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useForm } from "react-hook-form";
-import Button from "src/components/button/Button";
 import TextInput from "src/components/input/TextInput";
+import { Button } from "src/components/ui/button";
 import { useAuth } from "src/contexts/AuthContext";
 import { object, string } from "yup";
 
@@ -48,7 +48,7 @@ const Login: React.FC = () => {
             type="password"
           />
           <div className="mt-2">
-            <Button label="Sign in" onClick={handleSave} />
+            <Button onClick={handleSave}>Sign in</Button>
           </div>
 
           <p className="mt-10 text-center text-sm text-input-label">

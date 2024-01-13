@@ -1,7 +1,7 @@
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { FC, ReactNode } from "react";
 import { createPortal } from "react-dom";
-import Button from "src/components/button/Button";
+import { Button } from "src/components/ui/button";
 
 type Props = {
   title: string;
@@ -27,8 +27,10 @@ const Modal: FC<Props> = ({ title, content, onClose, onConfirm }) => {
             <h3 className="text-xl font-medium text-white">{title}</h3>
             <div className="space-y-6 overflow-y-auto">{content}</div>
             <div className="flex lg:flex-row flex-col gap-2">
-              <Button label="Close" onClick={onClose} type="secondary" />
-              <Button label="Confirm" onClick={onConfirm} />
+              <Button onClick={onClose} variant="secondary">
+                Close
+              </Button>
+              <Button onClick={onConfirm}>Confirm</Button>
             </div>
           </div>
         </div>
